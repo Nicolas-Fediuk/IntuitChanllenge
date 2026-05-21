@@ -82,7 +82,7 @@ public class TurnosController : ControllerBase
             MedicoId = turno.MedicoId,
             FechaHora = turno.FechaHora,
             Motivo = turno.Motivo,
-            FechaCreacion = DateTime.UtcNow,
+            FechaCreacion = DateTime.Now,
             Estado = EstadoTurno.Pendiente
         };
 
