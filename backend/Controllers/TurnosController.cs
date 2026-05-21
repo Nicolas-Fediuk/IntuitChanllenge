@@ -46,11 +46,20 @@ public class TurnosController : ControllerBase
     public async Task<IActionResult> CrearTurno([FromBody] TurnoDTO turno)
     {
         var paciente = await _context.Pacientes.FindAsync(turno.PacienteId);
+
         if (paciente == null)
             return NotFound(new { mensaje = "Paciente no encontrado." });
 
+
         if (paciente.Bloqueado)
-            return BadRequest(new { mensaje = "El paciente se encuentra bloqueado para agendar turnos online." });
+        {
+            var fechaBloqueoFin = paciente.FechaBloqueo?.AddDays(30);
+            if (fechaBloqueoFin >= DateTime.Now)
+                return BadRequest(new { mensaje = "El paciente se encuentra bloqueado para agendar turnos online." });
+            else
+                await DesbloquearUsuario(paciente);
+        }
+            
 
         if(!paciente.isActive)
             return BadRequest(new { mensaje = "El paciente no está activo para agendar turnos online." });
@@ -92,7 +101,7 @@ public class TurnosController : ControllerBase
 
         //ausente
         if (turno.Estado == EstadoTurno.NoShow)
-        {        
+        {
             if (!turno.FechaHora.IsWithinCancellationWindow())
                 return BadRequest(new { mensaje = "La ausencia solo puede registrarse dentro de las 24 horas del turno." });
 
@@ -130,6 +139,15 @@ public class TurnosController : ControllerBase
 
         await _context.SaveChangesAsync();
     }
+
+    private async Task DesbloquearUsuario(Paciente paciente)
+    {
+        paciente.Bloqueado = false;
+        paciente.FechaBloqueo = null;
+
+        await _context.SaveChangesAsync();
+    }
+
 }
 
 public class ActualizarEstadoRequest
